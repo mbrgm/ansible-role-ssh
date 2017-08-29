@@ -1,0 +1,59 @@
+---
+- set_fact:
+    ssh_host_ca_pub: >-
+      {{ lookup('pipe', 'echo "{}" | ssh-keygen -f /dev/stdin -y'.format(ssh_host_ca_key)) }}
+    ssh_user_ca_pub: >-
+      {{ lookup('pipe', 'echo "{}" | ssh-keygen -f /dev/stdin -y'.format(ssh_user_ca_key)) }}
+  delegate_to: localhost
+
+- set_fact:
+    ssh_host_ca_fingerprint: >-
+      {{ lookup('pipe', 'echo "{}" | ssh-keygen -f /dev/stdin -l | cut -d " " -f2'.format(ssh_host_ca_pub)) }}
+  delegate_to: localhost
+
+- name: fetch_host_pubkeys
+  fetch:
+    src: /etc/ssh/ssh_host_{{ item }}_key.pub
+    dest: "{{ ssh_local_dir }}/ssh_host_{{ item }}_key.pub"
+    flat: True
+  register: fetched
+  with_items: "{{ ssh_host_key_types }}"
+
+- include_tasks: sign_host_key.yml
+  vars:
+    pubkey_path: "{{ item }}"
+  with_items: "{{ fetched.results | map(attribute='dest') | list }}"
+
+- name: upload_host_key_certs
+  copy:
+    dest: "{{ item.file | regex_replace('\\.pub$', '-cert.pub') }}"
+    src: "{{ item.dest | regex_replace('\\.pub$', '-cert.pub') }}"
+  loop_control:
+    label: "{{ item.item }}"  # the hostkey algorithm
+  with_items: "{{ fetched.results }}"
+  notify: reload_ssh
+
+- name: upload_user_ca
+  copy:
+    dest: "{{ ssh_user_ca_pub_path }}"
+    content:  "{{ ssh_user_ca_pub }}"
+
+- name: configure_sshd
+  template:
+    dest: /etc/ssh/sshd_config
+    src: sshd_config
+    mode: 0644
+  notify: reload_ssh
+
+- name: configure_known_hosts
+  copy:
+    dest: "{{ ssh_global_known_hosts_file }}"
+    content: |-
+      @cert-authority * {{ ssh_host_ca_pub }}
+
+- name: configure_ssh
+  template:
+    dest: /etc/ssh/ssh_config
+    src: ssh_config
+    mode: 0644
+

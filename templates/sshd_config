@@ -1,0 +1,45 @@
+#
+# based on https://wiki.mozilla.org/Security/Guidelines/OpenSSH#Configuration
+#
+
+# Supported HostKey algorithms by order of preference.
+{% for type in ssh_host_key_types -%}
+HostKey /etc/ssh/ssh_host_{{ type }}_key
+{% endfor %}
+
+# Host certificates
+{% for type in ssh_host_key_types -%}
+HostCertificate /etc/ssh/ssh_host_{{ type }}_key-cert.pub
+{% endfor %}
+
+# Trust users with a signature from the user CA
+TrustedUserCAKeys {{ ssh_user_ca_pub_path }}
+
+KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+
+# Password based logins are disabled - only public key based logins are allowed.
+AuthenticationMethods publickey
+
+# LogLevel VERBOSE logs user's key fingerprint on login. Needed to have a clear audit track of which key was using to log in.
+LogLevel VERBOSE
+
+# Log sftp level file access (read/write/etc.) that would not be easily logged otherwise.
+Subsystem sftp  /usr/lib/ssh/sftp-server -f AUTHPRIV -l INFO
+
+# No other users than root can log in
+AllowUsers root
+
+# Root cannot log in by default
+PermitRootLogin no
+
+# Use kernel sandbox mechanisms where possible in unprivileged processes
+# Systrace on OpenBSD, Seccomp on Linux, seatbelt on MacOSX/Darwin, rlimit elsewhere.
+UsePrivilegeSeparation sandbox
+
+# Root may login from the following networks
+Match Address {{ ','.join(ssh_root_login_networks) }} User root
+  PermitRootLogin without-password

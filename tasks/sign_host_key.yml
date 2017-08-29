@@ -1,0 +1,23 @@
+- set_fact:
+    cert_path: "{{ pubkey_path | regex_replace('\\.pub$', '-cert.pub') }}"
+
+- name: get_cert_info
+  delegate_to: localhost
+  script: files/get_cert_info.sh "{{ cert_path }}"
+  register: cert_info_out
+  ignore_errors: True
+  changed_when: False
+
+- set_fact:
+    cert_info: "{{ cert_info_out.stdout | from_json }}"
+    cert_id: "{{ inventory_hostname }}"
+    cert_principals: "{{ inventory_hostname }},{{ public_ipv4 }}"
+
+- name: sign_key
+  delegate_to: localhost
+  shell: >-
+    echo "{{ ssh_host_ca_key }}" \
+    | ssh-keygen -s /dev/stdin -I {{ cert_id }} -h -n {{ cert_principals }} -V +52w  "{{ pubkey_path }}"
+  when: >-
+    cert_info.signing_ca_fingerprint != ssh_host_ca_fingerprint
+    or cert_info.remaining_days < ssh_cert_min_valid_days

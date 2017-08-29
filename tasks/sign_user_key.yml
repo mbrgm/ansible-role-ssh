@@ -1,0 +1,22 @@
+# TODO: Log/register signed keys and monitor validity period
+---
+- hosts: localhost
+  tasks:
+    - shell: >-
+        echo "{{ ssh_user_ca_key }}" \
+        | ssh-keygen -s /dev/stdin -I "{{ id }}" -n "{{ principals }}" -V "{{ validity_period }}"  "{{ pubkey }}"
+  vars_prompt:
+    - name: 'pubkey'
+      prompt: "Path to the user's public key file"
+      private: False
+    - name: 'id'
+      prompt: "User's email address"
+      private: False
+    - name: 'principals'
+      prompt: "Principals to grant to the user (comma-separated)"
+      default: "root"
+      private: False
+    - name: 'validity_period'
+      prompt: "How long shall this certificate be valid?"
+      default: "+52w"
+      private: False

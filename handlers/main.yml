@@ -1,0 +1,6 @@
+---
+- name: reload_ssh
+  listen: reload_ssh
+  service:
+    name: ssh
+    state: reloaded

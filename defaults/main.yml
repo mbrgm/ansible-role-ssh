@@ -1,0 +1,7 @@
+---
+ssh_host_key_types:  # in order of preference
+  - ed25519
+  - rsa
+  - ecdsa
+
+ssh_cert_min_valid_days: 30
