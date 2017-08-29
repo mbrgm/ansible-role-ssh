@@ -11,6 +11,11 @@
       {{ lookup('pipe', 'echo "{}" | ssh-keygen -f /dev/stdin -l | cut -d " " -f2'.format(ssh_host_ca_pub)) }}
   delegate_to: localhost
 
+- name: create_local_dir
+  file:
+    state: directory
+    path: "{{ ssh_local_dir }}"
+
 - name: fetch_host_pubkeys
   fetch:
     src: /etc/ssh/ssh_host_{{ item }}_key.pub
