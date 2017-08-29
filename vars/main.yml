@@ -1,4 +1,4 @@
 ---
 ssh_global_known_hosts_file: /etc/ssh/ssh_known_hosts
-ssh_local_dir: "{{ secrets_dir }}/{{ inventory_hostname }}"
+ssh_local_dir: "{{ secrets_dir }}/{{ inventory_hostname }}/ssh"
 ssh_user_ca_pub_path: /etc/ssh/user_ca.pub
