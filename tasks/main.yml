@@ -29,12 +29,13 @@
     pubkey_path: "{{ item }}"
   with_items: "{{ fetched.results | map(attribute='dest') | list }}"
 
+# in this task, `item.item` refers to the hostkey algorithm from `ssh_host_key_types`
 - name: upload_host_key_certs
   copy:
-    dest: "{{ item.file | regex_replace('\\.pub$', '-cert.pub') }}"
+    dest: /etc/ssh/ssh_host_{{ item.item }}_key-cert.pub
     src: "{{ item.dest | regex_replace('\\.pub$', '-cert.pub') }}"
   loop_control:
-    label: "{{ item.item }}"  # the hostkey algorithm
+    label: "{{ item.item }}"
   with_items: "{{ fetched.results }}"
   notify: reload_ssh
 
